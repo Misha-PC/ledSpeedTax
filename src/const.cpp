@@ -11,5 +11,5 @@
 
 #define FIRST_PIN 3
 
-#define PIN_SPD 1
-#define PIN_TAX 2
+#define PIN_SPD A1
+#define PIN_TAX A0

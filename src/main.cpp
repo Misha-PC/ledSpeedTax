@@ -1,10 +1,17 @@
 #include <Arduino.h>
 #include "const.cpp"
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 20, 4);     // SDA - A4 SCL - A5
 
 int speedInt, valInt;
 int speedALed_, valALed_;
 
+
+
+
 void setup() {
+  lcd.print("Start!");
   Serial.begin(9600);
   Serial.setTimeout(10);
 
@@ -21,7 +28,7 @@ void setup() {
 
   pinMode(PIN_SPD, OUTPUT);
   pinMode(PIN_TAX, OUTPUT);
-} 
+}
 
 void parsSerial(){
       String speedStr, valStr;
@@ -51,6 +58,12 @@ void parsSerial(){
 
       speedALed_ = map(speedInt, 0, MAX_SPEED, 0, LED_IN_SPEED);
       valALed_ = map(valInt, 0, MAX_VAL, 0, LED_IN_TAX);
+
+      Serial.print("Speed led: ");
+      Serial.println(speedALed_);
+      Serial.print("Tax led: ");
+      Serial.println(valALed_);
+
 }
 
 void showVal(int speed, int val) {
@@ -80,11 +93,23 @@ void showVal(int speed, int val) {
   }
 }
 
+void showToIC(int speed, int val) {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Speed: ");
+  lcd.print(speed);
+  lcd.setCursor(0, 1);
+  lcd.print("tax: ");
+  lcd.print(val);
+}
+
 void loop() {
   if(Serial.available()){
     parsSerial();
+    showToIC(speedInt, valInt);
   }
   else{
     showVal(speedALed_, valALed_);
   }
 }
+// S200V4000
