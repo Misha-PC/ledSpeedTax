@@ -4,93 +4,114 @@
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);     // SDA - A4 SCL - A5
 
-int speedInt, valInt;
-int speedALed_, valALed_;
+int speedInt, valInt, speedALed_, valALed_;
 
 
+void fillLed(int led_, int led_max){
+    Serial.println("-----------------");
+    Serial.print("Led: ");
+    Serial.println(led_);
+  for(int i = FIRST_PIN; i < FIRST_PIN + led_max; i++){
+    if(i < FIRST_PIN + led_){
+      digitalWrite(i, WORK_STATE);
+      Serial.print(i);
+      Serial.println(" to HIGH");
+
+    }
+    else{
+      digitalWrite(i, !WORK_STATE);
+      Serial.print(i);
+      Serial.println(" to LOW"); // S60
+    }
+  }
+  Serial.println("-----------------");
+}
 
 
-void setup() {
+void setup(){
+  lcd.begin();
+  lcd.backlight();
   lcd.print("Start!");
   Serial.begin(9600);
-  Serial.setTimeout(10);
+  Serial.setTimeout(100);
 
   if(LED_IN_SPEED >= LED_IN_TAX){
-    for(int i = FIRST_PIN; i <= LED_IN_SPEED; i++){
+    for(int i = FIRST_PIN; i <= LED_IN_SPEED + FIRST_PIN - 1; i++){
       pinMode(i, OUTPUT);
+      if(DEV_MOD){
+        Serial.print(i);
+        Serial.println("Set to OUTPUT");
+      }
     }
   }
   else{
-    for(int i = FIRST_PIN; i <= LED_IN_TAX; i++){
+    for(int i = FIRST_PIN; i <= LED_IN_TAX + FIRST_PIN - 1; i++){
       pinMode(i, OUTPUT);
+      if(DEV_MOD){
+        Serial.print(i);
+        Serial.println("Set to OUTPUT");
+      }
     }
   }
 
   pinMode(PIN_SPD, OUTPUT);
   pinMode(PIN_TAX, OUTPUT);
+  if(DEV_MOD){
+    Serial.println("-----------------");
+  }
+
+
 }
 
-void parsSerial(){
-      String speedStr, valStr;
-      char currentChar;
-      int currentMeta = 3;
+void showLed(int sl, int vl){
+  if(sl && vl){   // обороты  > 0 && скорость > 0
 
-      while (Serial.available()) {
-        currentChar = Serial.read();
-        if(currentChar == 'V'){
-          currentMeta = 0;
-        }
-        else if(currentChar == 'S'){
-          currentMeta = 1;
-        }
-        else{
-          if(currentMeta){
-              speedStr += currentChar;
-          }
-          else{
-            valStr += currentChar;
-          }
-        }
+  }
+  else if(sl){  // скорость > 0
+
+  }
+  else if(vl){  // обороты > 0
+
+  }
+  else{   // обороты  = 0 && скорость = 0
+
+  }
+
+}
+
+void parsSerialStr() {
+
+  char currentChar, currentMeta;
+  String inStr = Serial.readString();
+  String speedStr, valStr;
+  for(unsigned int i = 0; i < inStr.length(); i++){
+    currentChar = inStr.charAt(i);  // current char
+    if(currentChar >= 48 && currentChar <= 57){
+      if (currentMeta == 'S') {
+        speedStr += currentChar;
       }
-
-      valInt = valStr.toInt();
-      speedInt = speedStr.toInt();
-
-      speedALed_ = map(speedInt, 0, MAX_SPEED, 0, LED_IN_SPEED);
-      valALed_ = map(valInt, 0, MAX_VAL, 0, LED_IN_TAX);
-
-      Serial.print("Speed led: ");
-      Serial.println(speedALed_);
-      Serial.print("Tax led: ");
-      Serial.println(valALed_);
-
-}
-
-void showVal(int speed, int val) {
-  delay(UPDATE_DELAY);
-
-  digitalWrite(PIN_TAX, HIGH);
-  digitalWrite(PIN_SPD, LOW);
-
-  for(int i = FIRST_PIN; i <= LED_IN_SPEED; i++){
-    if(i <= speed){
-      digitalWrite(i, HIGH);
-    } else{
-      digitalWrite(i, LOW);
+      else if (currentMeta == 'V') {
+        valStr += currentChar;
+      }
+    }
+    else{
+      currentMeta = currentChar;
     }
   }
-  delay(UPDATE_DELAY);
 
-  digitalWrite(PIN_TAX, LOW);
-  digitalWrite(PIN_SPD, HIGH);
+  speedInt = constrain(speedStr.toInt(), 0, MAX_SPEED);
+  valInt = constrain(valStr.toInt(), 0, MAX_VAL);
 
-  for(int i = FIRST_PIN; i <= LED_IN_TAX; i++){
-    if(i <= val){
-      digitalWrite(i, HIGH);
-    } else{
-      digitalWrite(i, LOW);
-    }
+  valALed_ = constrain(map(valInt, 0, MAX_VAL, 0, LED_IN_TAX), 0, LED_IN_TAX);
+  speedALed_ = constrain(map(speedInt, 0, MAX_SPEED, 0, LED_IN_SPEED), 0, LED_IN_SPEED);
+
+  if (speedInt != 0 && speedALed_ == 0) {
+    speedALed_ = 1;
   }
+  if (valInt != 0 && valALed_ == 0){
+    valALed_ = 1;
+  }
+
 }
 
 void showToIC(int speed, int val) {
@@ -105,11 +126,12 @@ void showToIC(int speed, int val) {
 
 void loop() {
   if(Serial.available()){
-    parsSerial();
+    parsSerialStr();
     showToIC(speedInt, valInt);
+    fillLed(speedALed_, 10);
   }
   else{
-    showVal(speedALed_, valALed_);
+    showLed(speedALed_, valALed_);
   }
 }
 // S200V4000
